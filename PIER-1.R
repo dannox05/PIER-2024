@@ -5,7 +5,8 @@ library(dplyr)
 library(ggplot2)
 
 # Read in tab separated data
-data = read.csv('C:/Users/Nox/Desktop/PIER/2014.tsv', sep = "\t")
+data = read.csv('C:/Users/Nox/Desktop/PIER/data.tsv', sep = "\t")
+data <- data[data$Cast == "SPOT", ]
 
 # Add categorical variables to new column Season
 data$Season = ifelse(data$Month %in% c("1", "2", "3"), "Winter", 
@@ -14,23 +15,46 @@ data$Season = ifelse(data$Month %in% c("1", "2", "3"), "Winter",
                                    ifelse(data$Month %in% c("10", "11", "12"), "Fall", "NA"))))
 
 
+# Unique year data
+dataALL = data
+data2013 = data[data$Year == "2013", ]
+data2014 = data[data$Year == "2014", ]
+data2017 = data[data$Year == "2017", ]
+data2018 = data[data$Year == "2018", ]
 
-### Depth vs. Temperature scatter plot 2014 data
-ggplot(data, aes(x = data$Depth..salt.water..m...lat...0.00, y = data$Temperature..ITS.90..deg.C.)) +
+
+# What data do you want to look at?
+observed_data = dataALL
+
+
+
+
+### Depth vs. Temperature scatter plot 
+ggplot(observed_data, aes(x = observed_data$Temperature..ITS.90..deg.C.,
+                 y = observed_data$Depth..salt.water..m...lat...0.00)) +
   geom_point() +
-  labs(x = 'Depth (m)', y = 'Temperature (C)')
+  scale_y_reverse() +
+  labs(x = 'Temperature (C)', y = 'Depth (m)')
 
 ### https://chat.openai.com/share/87aeec9f-b352-43cb-9c6b-3e1b8cbee9f7
 
-# Depth vs. Temperature scatter plot 2014 data by seasons
+
+
+
+
+
+
+
+### Depth vs. Temperature scatter plot by seasons
 season_colors = c('Winter' = 'royalblue3', 'Spring' = 'chartreuse3',
                   'Summer' = 'firebrick', 'Fall' = 'goldenrod')
 
-ggplot(data, aes(x = data$Depth..salt.water..m...lat...0.00, 
-                 y = data$Temperature..ITS.90..deg.C.,
-                 color = factor(data$Season))) +
+ggplot(observed_data, aes(x = observed_data$Temperature..ITS.90..deg.C., 
+                 y = observed_data$Depth..salt.water..m...lat...0.00,
+                 color = factor(observed_data$Season))) +
   geom_point() +
-  labs(x = 'Depth (m)', y = 'Temperature °C', color = 'Seasons') +
+  scale_y_reverse() +
+  labs(x = 'Temperature °C', y = 'Depth (m)', color = 'Seasons') +
   scale_color_manual(values = season_colors)
 
 
@@ -44,8 +68,8 @@ ggplot(data, aes(x = data$Depth..salt.water..m...lat...0.00,
 
 ### Confidence interval by season
 # Create subset of data
-depth = data$Depth..salt.water..m...lat...0.00
-surface_data = subset(data, depth <= 60)
+depth = observed_data$Depth..salt.water..m...lat...0.00
+surface_data = subset(observed_data, depth <= 60)
 
 # Calculate confidence intervals
 surface_summary <- surface_data %>%
@@ -81,10 +105,10 @@ ggplot(surface_summary, aes(x = Season,
 
 
 
-### Confidence interval by month
+### Confidence interval by months
 # Create subset of data
-depth = data$Depth..salt.water..m...lat...0.00
-surface_data = subset(data, depth <= 60)
+depth = observed_data$Depth..salt.water..m...lat...0.00
+surface_data = subset(observed_data, depth <= 60)
 
 # Calculate confidence intervals
 surface_summary <- surface_data %>%
@@ -120,7 +144,7 @@ ggplot(surface_summary, aes(x = Month, y = mean, color = mean)) +
 
 
 ### Violin plot
-surface_data = subset(data, depth <= 60)
+surface_data = subset(observed_data, depth <= 60)
 # Define the order of seasons
 season_order <- c('Winter', 'Spring', "Summer", "Fall")
 
@@ -133,3 +157,33 @@ ggplot(surface_data, aes(x = surface_data$Season, y = surface_data$Temperature..
   labs(x = 'Seasons', y = 'Temperature °C') +
   scale_fill_manual(values = season_colors)
 
+
+
+
+
+
+
+
+
+### Confidence interval by years
+# Create subset of data
+depth = observed_data$Depth..salt.water..m...lat...0.00
+surface_data = subset(observed_data, depth <= 60)
+
+# Calculate confidence intervals
+surface_summary <- surface_data %>%
+  group_by(Year) %>%
+  summarise(
+    mean = mean(Temperature..ITS.90..deg.C.),
+    sd = sd(Temperature..ITS.90..deg.C.),
+    n = n(),
+    se = sd/sqrt(n),
+    ci = 1.96*se)
+
+
+# Plot with reordered x-values
+ggplot(surface_summary, aes(x = Year, y = mean, color = mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=mean-ci, ymax=mean+ci), width=.1) +
+  labs(x = 'Year', y = 'Mean Temperature °C', color = '°C') +
+  scale_color_gradient(low = "blue", high = "red")
