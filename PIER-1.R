@@ -1,8 +1,8 @@
 
 # Load packages
-library(ggplot2)
 library(tibble)
 library(dplyr)
+library(ggplot2)
 
 # Read in tab separated data
 data = read.csv('C:/Users/Nox/Desktop/PIER/2014.tsv', sep = "\t")
