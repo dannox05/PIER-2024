@@ -1,0 +1,229 @@
+### This script is for the PIER 2024 mentoring program's data analysis workshop
+### Author: Daniel Novoa and Dr. Jimmy Lee
+
+### If you're having trouble with the syntax take a look at how I use chatGPT
+###   to help understand code. This is an example of how using chatGPT can be
+###   beneficial in your academic career. Make sure to always validate your results!
+# https://chat.openai.com/share/87aeec9f-b352-43cb-9c6b-3e1b8cbee9f7
+
+
+# Install packages
+install.packages(c("tibble", "dplyr", "ggplot2", "rmarkdown"))
+### You only have to do this once ###
+
+# Load packages
+library(tibble)
+library(dplyr)
+library(ggplot2)
+library(rmarkdown)
+
+
+# Assign the data path as a string to the variable data_path
+data_path = 'data.tsv'
+# Read in tab separated value data
+data = read.csv(data_path, sep = "\t")
+# Filter the data, only keeping the data that contains "SPOT" in the column Cast
+data <- data[data$Cast == "SPOT", ]
+
+# Add categorical variables to new column Season
+#   If 1,2,3 then Winter, else if 4,5,6 then Spring, etc.
+data$Season = ifelse(data$Month %in% c("1", "2", "3"), "Winter", 
+                     ifelse(data$Month %in% c("4", "5", "6"), "Spring",
+                            ifelse(data$Month %in% c("7", "8", "9"), "Summer",
+                                   ifelse(data$Month %in% c("10", "11", "12"), "Fall", "NA"))))
+
+### Unique year data
+# What is happening here? Hint: Look at line 24
+dataALL = data
+data2013 = data[data$Year == "2013", ]
+data2014 = data[data$Year == "2014", ]
+data2017 = data[data$Year == "2017", ]
+data2018 = data[data$Year == "2018", ]
+
+
+### Choosing what data we want to look at
+observed_data = dataALL
+
+# Variables we can look at
+pressure = observed_data$Pressure..Digiquartz..db.
+temperature = observed_data$Temperature..ITS.90..deg.C.
+conductivity = observed_data$Conductivity..S.m.
+depth = observed_data$Depth..salt.water..m...lat...0.00
+oxygen_saturation = observed_data$Oxygen.Saturation..ML.L.
+salinity = observed_data$Salinity..Practical..PSU.
+fluorescence = observed_data$Fluorescence..WET.Labs.ECO.AFL.FL..mg.m.3.
+density = observed_data$Density..kg.m3.
+season = observed_data$Season
+month = observed_data$Month
+year = observed_data$Year
+
+# Create a dictionary of variable labels
+label_dictionary <- list(
+  pressure = "Pressure (dB)",
+  temperature = "Temperature (°C)",
+  conductivity = "Conductivity (S/m)",
+  depth = "Depth (m)",
+  oxygen_saturation = "Oxygen Saturation (mL/L)",
+  salinity = "Salinity (PSU)",
+  fluorescence = "Fluorescence (mg/m^3)",
+  density = "Density (kg/m^3)" )
+
+
+
+### Depth vs. Temperature scatter plot
+x_data = temperature
+x_label = label_dictionary$temperature
+y_data = depth
+y_label = label_dictionary$depth
+
+
+
+ggplot(observed_data, aes(x = x_data, y = y_data)) +
+  geom_point() +
+  scale_y_reverse() +
+  labs(x = x_label, y = y_label)
+
+### Depth vs. Temperature scatter plot by seasons
+x_data = temperature
+x_label = label_dictionary$temperature
+y_data = depth
+y_label = label_dictionary$depth
+
+
+season_colors = c('Winter' = 'royalblue3', 'Spring' = 'chartreuse3',
+                  'Summer' = 'firebrick', 'Fall' = 'goldenrod')
+
+ggplot(observed_data, aes(x = x_data, y = y_data,
+                          color = factor(observed_data$Season))) +
+  geom_point() +
+  scale_y_reverse() +
+  labs(x = x_label, y = y_label, color = 'Seasons') +
+  scale_color_manual(values = season_colors)
+
+
+### Confidence interval by season
+depth_cutoff = 100
+
+### Variable to observe
+y_data = temperature
+y_label = label_dictionary$temperature
+
+# Restructuring data
+df = data.frame(y_data, depth, season)
+df = na.omit(df)
+
+# Create subset of data of surface depth <= depth_cutoff
+surface_data = subset(df, depth <= depth_cutoff)
+
+# Calculate confidence intervals
+surface_summary <- surface_data %>%
+  group_by(season) %>%
+  summarise(
+    mean = mean(y_data),
+    sd = sd(y_data),
+    n = n(),
+    se = sd/sqrt(n),
+    ci = 1.96*se)
+# Define the order of seasons
+season_order <- c('Winter', 'Spring', "Summer", "Fall")
+# Reorder the "Season" variable
+surface_summary$Season <- factor(surface_summary$season, levels = season_order)
+# Plot with reordered x-values
+ggplot(surface_summary, aes(x = season,
+                            y = mean,
+                            color = season)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=mean-ci, ymax=mean+ci), width=.1) +
+  labs(title = paste("Conficence Intervals by Season with a depth cutoff of", depth_cutoff, "m"),
+       x = 'Season', y = y_label) +
+  scale_color_manual(values = season_colors)
+
+
+
+### Confidence interval by season
+depth_cutoff = 100
+
+### Variable to observe
+y_data = temperature
+y_label = label_dictionary$temperature
+
+# Restructuring data
+df = data.frame(y_data, depth, month)
+df = na.omit(df)
+
+# Create subset of data of surface depth <= depth_cutoff
+surface_data = subset(df, depth <= depth_cutoff)
+# Calculate confidence intervals
+surface_summary <- surface_data %>%
+  group_by(month) %>%
+  summarise(
+    mean = mean(y_data),
+    sd = sd(y_data),
+    n = n(),
+    se = sd/sqrt(n),
+    ci = 1.96*se)
+
+month_labs = c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
+               'Oct', 'Nov', 'Dec')
+# Plot with reordered x-values
+ggplot(surface_summary, aes(x = month, y = mean, color = mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=mean-ci, ymax=mean+ci), width=.1) +
+  labs(title = paste("Conficence Intervals by Months with a depth cutoff of", depth_cutoff, "m"),
+       x = 'Month', y = y_label, color = 'Mean') +
+  geom_smooth(method = "lm", formula = y ~ poly(x, degree = 3), 
+              se = TRUE, color = "black") +
+  scale_color_gradient(low = "blue", high = "red") +
+  scale_x_continuous(breaks = 1:12, labels = month_labs)
+
+
+
+### Confidence interval by season
+depth_cutoff = 100
+
+### Variable to observe
+y_data = temperature
+y_label = label_dictionary$temperature
+
+# Restructuring data
+df = data.frame(y_data, depth, year)
+df = na.omit(df)
+
+# Create subset of data of surface depth <= depth_cutoff
+surface_data = subset(df, depth <= depth_cutoff)
+# Calculate confidence intervals
+surface_summary <- surface_data %>%
+  group_by(year) %>%
+  summarise(
+    mean = mean(y_data),
+    sd = sd(y_data),
+    n = n(),
+    se = sd/sqrt(n),
+    ci = 1.96*se)
+# Plot with reordered x-values
+ggplot(surface_summary, aes(x = year, y = mean, color = mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=mean-ci, ymax=mean+ci), width=.1) +
+  labs(title = paste("Conficence Intervals by Years with a depth cutoff of", depth_cutoff, "m"),
+       x = 'Year', y = y_label, color = 'Mean') +
+  scale_color_gradient(low = "blue", high = "red")
+
+
+
+### Violin plot
+depth_cutoff = 100
+
+surface_data = subset(observed_data, depth <= depth_cutoff)
+# Define the order of seasons
+season_order <- c('Winter', 'Spring', "Summer", "Fall")
+# Reorder the "Season" variable
+surface_data$Season <- factor(surface_data$Season, levels = season_order)
+# Plot
+ggplot(surface_data, aes(x = surface_data$Season, y = surface_data$Temperature..ITS.90..deg.C., fill = Season)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, color = "black", fill = "white") +
+  labs(title = paste("Violin Plots by Season with a depth cutoff of", depth_cutoff, "m"),
+       x = 'Seasons', y = 'Temperature °C') +
+  scale_fill_manual(values = season_colors)
+
+
