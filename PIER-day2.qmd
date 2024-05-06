@@ -91,6 +91,9 @@ ggplot(observed_data, aes(x = x_data, y = y_data)) +
   scale_y_reverse() +
   labs(x = x_label, y = y_label)
 ```
+```{r}
+ggsave("plot_name1.png", device = "png")
+```
 
 
 ```{r}
@@ -111,6 +114,9 @@ ggplot(observed_data, aes(x = x_data, y = y_data,
   labs(x = x_label, y = y_label, color = 'Seasons') +
   scale_color_manual(values = season_colors)
 
+```
+```{r}
+ggsave("plot_name2.png", device = "png")
 ```
 
 
@@ -152,6 +158,9 @@ ggplot(surface_summary, aes(x = season,
        x = 'Season', y = y_label) +
   scale_color_manual(values = season_colors)
 ```
+```{r}
+ggsave("plot_name3.png", device = "png")
+```
 
 
 ```{r}
@@ -191,6 +200,9 @@ ggplot(surface_summary, aes(x = month, y = mean, color = mean)) +
   scale_color_gradient(low = "blue", high = "red") +
   scale_x_continuous(breaks = 1:12, labels = month_labs)
 ```
+```{r}
+ggsave("plot_name4.png", device = "png")
+```
 
 
 ```{r}
@@ -224,6 +236,9 @@ ggplot(surface_summary, aes(x = year, y = mean, color = mean)) +
        x = 'Year', y = y_label, color = 'Mean') +
   scale_color_gradient(low = "blue", high = "red")
 ```
+```{r}
+ggsave("plot_name5.png", device = "png")
+```
 
 
 ```{r}
@@ -242,5 +257,8 @@ ggplot(surface_data, aes(x = surface_data$Season, y = surface_data$Temperature..
   labs(title = paste("Violin Plots by Season with a depth cutoff of", depth_cutoff, "m"),
        x = 'Seasons', y = 'Temperature °C') +
   scale_fill_manual(values = season_colors)
+```
+```{r}
+ggsave("plot_name6.png", device = "png")
 ```
 

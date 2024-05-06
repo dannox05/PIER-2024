@@ -8,7 +8,7 @@
 
 
 # Install packages
-install.packages(c("tibble", "dplyr", "ggplot2", "rmarkdown"))
+#install.packages(c("tibble", "dplyr", "ggplot2", "rmarkdown"))
 ### You only have to do this once ###
 
 # Load packages
@@ -227,3 +227,5 @@ ggplot(surface_data, aes(x = surface_data$Season, y = surface_data$Temperature..
   scale_fill_manual(values = season_colors)
 
 
+### Save your plot
+ggsave("plot_name.png", device = "png")
